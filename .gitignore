@@ -1,0 +1,41 @@
+# Credenciais e variáveis de ambiente
+.env
+.env.local
+.env.*.local
+
+# Ambiente virtual Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Distribuição / build
+dist/
+build/
+*.egg-info/
+*.egg
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+server_*.log
+
+# Arquivos de lock (usar pyproject.toml como fonte da verdade)
+uv.lock
+
+# Arquivos de trabalho do LinkedIn (não fazem parte do projeto em si)
+linkedin_post.md
+linkedin_snippet_*.py

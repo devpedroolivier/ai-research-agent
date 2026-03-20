@@ -1,0 +1,16 @@
+[project]
+name = "deep-agents"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "deepagents>=0.4.11",
+    "tavily-python>=0.7.23",
+    "langchain-openai",
+    "python-dotenv",
+    "pytest",
+    "langchain-community",
+    "langchain-tavily",
+    "langchain",
+]
