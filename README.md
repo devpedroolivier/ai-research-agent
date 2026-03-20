@@ -4,12 +4,13 @@ Um agente de pesquisa autônomo construído com Python, LangGraph e GPT-4o. Ele 
 
 ## O que ele faz
 
-Dado um tópico ou pergunta, o agente:
+Dado um tópico ou pergunta, o sistema orquestrado:
 
-1. Recebe a query do usuário
-2. Decide autonomamente quando e como usar a busca web (Tavily)
-3. Processa e sintetiza os resultados encontrados
-4. Entrega uma resposta conclusiva e bem estruturada
+1. O orquestrador planeja as etapas com **TodoListMiddleware**
+2. Delega a busca de dados para `web_researcher` (Tavily)
+3. Delega a estruturação do relatório para `report_writer`
+4. Salva o relatório em `research_output/` via **FilesystemMiddleware**
+5. Lê instruções persistentes de `.deepagents/AGENTS.md` via **MemoryMiddleware**
 
 ```python
 resultado = run_research("Quais são as tendências mais recentes em IA Generativa para 2026?")
@@ -23,37 +24,34 @@ resultado = run_research("Quais são as tendências mais recentes em IA Generati
 | [GPT-4o](https://platform.openai.com/docs/models/gpt-4o) | LLM — raciocínio e síntese |
 | [Tavily Search](https://tavily.com/) | Busca web em tempo real |
 | [LangGraph](https://langchain-ai.github.io/langgraph/) | Agentic loop e gerenciamento de estado |
+| `FilesystemBackend` | Acesso seguro ao sistema de arquivos |
 | Python 3.12+ | Linguagem base |
 
 ## Como funciona
 
-O agente opera em um loop agentic:
+O sistema opera com um orquestrador que coordena 2 sub-agentes especializados:
 
 ```
 User Query
     ↓
-LLM (GPT-4o) raciocina sobre o que pesquisar
-    ↓
-TavilySearch busca fontes reais na web
-    ↓
-LLM processa e sintetiza os resultados
-    ↓
-Resposta estruturada
+Orquestrador (GPT-4o) — planeja etapas com write_todos
+        ↓                           ↓
+web_researcher              report_writer
+(Tavily Search)         (estrutura + salva .md)
+        ↓                           ↓
+   Dados brutos          research_output/*.md
+        ↓
+Resposta consolidada ao usuário
 ```
 
-A "personalidade" do agente é definida em texto simples no `system_prompt`:
+Middlewares ativos e como são ativados:
 
-```python
-agent = create_deep_agent(
-    model=llm,
-    tools=[search_tool],
-    system_prompt=(
-        "Você é um pesquisador sênior. Sua tarefa é investigar tópicos profundamente, "
-        "usando a ferramenta de busca para encontrar informações precisas e organizar "
-        "seus achados. Sempre forneça uma resposta conclusiva e bem estruturada."
-    )
-)
-```
+| Middleware | Como ativar | O que faz |
+|---|---|---|
+| `FilesystemMiddleware` | `backend=FilesystemBackend(...)` | Agente lê/escreve arquivos |
+| `MemoryMiddleware` | `memory=[".deepagents/AGENTS.md"]` | Instruções persistentes |
+| `SubAgentMiddleware` | `subagents=[...]` | Orquestração de especialistas |
+| `TodoListMiddleware` | Built-in automático | Planejamento de tarefas |
 
 ## Setup
 
@@ -92,10 +90,14 @@ TAVILY_API_KEY=tvly-...
 
 ```
 ai-research-agent/
-├── main.py          # Agente principal (create + run)
-├── test_agent.py    # Testes unitários
-├── pyproject.toml   # Dependências e configuração
-├── .env.example     # Template de variáveis de ambiente
+├── main.py                    # Orquestrador + subagentes + todos os middlewares
+├── test_agent.py              # Testes unitários e de integração
+├── pyproject.toml             # Dependências e configuração
+├── .deepagents/
+│   └── AGENTS.md              # Instruções persistentes (MemoryMiddleware)
+├── research_output/           # Relatórios gerados (FilesystemMiddleware)
+│   └── .gitkeep
+├── .env.example               # Template de variáveis de ambiente
 └── .gitignore
 ```
 
@@ -105,14 +107,19 @@ ai-research-agent/
 pytest test_agent.py -v
 ```
 
-## Possibilidades de expansão
+## Expandindo o sistema
 
-Este projeto é intencionalmente minimalista. O framework `deepagents` oferece middlewares prontos para expandir:
+Para adicionar um novo especialista, defina um `SubAgent` e inclua em `subagents=`:
 
-- **FilesystemMiddleware** — leitura e escrita de arquivos
-- **MemoryMiddleware** — memória persistente entre sessões
-- **SubAgentMiddleware** — orquestração de múltiplos agentes
-- **TodoListMiddleware** — planejamento e execução de tarefas
+```python
+NOVO_ESPECIALISTA: SubAgent = {
+    "name": "data_analyst",
+    "description": "Analisa dados numéricos e gera insights.",
+    "system_prompt": "Você é um analista de dados especializado...",
+    "tools": [...],
+    "model": ChatOpenAI(model="gpt-4o", temperature=0),
+}
+```
 
 ## Licença
 
